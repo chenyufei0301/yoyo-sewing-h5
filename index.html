@@ -315,6 +315,64 @@
     margin-top: 12px;
   }
 
+  /* ====== Image Lightbox ====== */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.94);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .lightbox-overlay.active { opacity: 1; pointer-events: auto; }
+  .lightbox-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lightbox-carousel {
+    width: 100%; height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    display: flex;
+    scrollbar-width: none;
+  }
+  .lightbox-carousel::-webkit-scrollbar { display: none; }
+  .lightbox-carousel-item {
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .lightbox-carousel-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .lightbox-counter {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
   /* ====== Footer ====== */
   .footer {
     text-align: center;
@@ -396,6 +454,13 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ====== Image Lightbox ====== -->
+<div class="lightbox-overlay" id="lightbox">
+  <div class="lightbox-close" id="lightboxClose">✕</div>
+  <div class="lightbox-carousel" id="lightboxCarousel"></div>
+  <div class="lightbox-counter" id="lightboxCounter"></div>
+</div>
+
 <script>
 // ==================== DATA ====================
 // ★ 修改这里的款式：name=名称, desc=描述, img=图片路径(空则显示编号), tags=标签
@@ -449,6 +514,7 @@ STYLES.forEach((s, i) => {
 // ==================== MODAL ====================
 const modal = document.getElementById('modal');
 const panel = document.getElementById('modalPanel');
+let currentImgs = [];
 
 function openModal(idx) {
   const s = STYLES[idx];
@@ -466,6 +532,7 @@ function openModal(idx) {
   }
   carousel.innerHTML = carouselHtml;
   carousel.scrollLeft = 0;
+  currentImgs = imgs || [];
 
   // --- Dots ---
   const dotsEl = document.getElementById('modalDots');
@@ -524,7 +591,48 @@ function closeModal() {
   document.body.style.overflow = '';
 }
 
+function openLightbox(startIdx) {
+  const lb = document.getElementById('lightbox');
+  const carousel = document.getElementById('lightboxCarousel');
+  const counter = document.getElementById('lightboxCounter');
+
+  let html = '';
+  currentImgs.forEach((img, i) => {
+    html += `<div class="lightbox-carousel-item"><img src="${img}" alt="${i+1}"></div>`;
+  });
+  carousel.innerHTML = html;
+
+  if (currentImgs.length > 1) {
+    counter.textContent = `${startIdx + 1} / ${currentImgs.length}`;
+    counter.style.display = 'block';
+  } else {
+    counter.style.display = 'none';
+  }
+
+  // Scroll to clicked image
+  requestAnimationFrame(() => {
+    carousel.scrollLeft = startIdx * carousel.offsetWidth;
+  });
+
+  lb.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+// Carousel image click → fullscreen lightbox
+document.getElementById('modalCarousel').addEventListener('click', function(e) {
+  const img = e.target.closest('.modal-carousel-item img');
+  if (!img) return;
+  const items = [...this.querySelectorAll('.modal-carousel-item')];
+  const idx = items.indexOf(img.closest('.modal-carousel-item'));
+  if (idx >= 0 && currentImgs.length > 0) openLightbox(idx);
+});
 
 	// Carousel scroll → update dots
 	document.getElementById('modalCarousel').addEventListener('scroll', function() {
@@ -535,6 +643,21 @@ modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); }
 	    d.classList.toggle('active', i === idx);
 	  });
 	});
+
+// Lightbox close: click X or background
+const lightbox = document.getElementById('lightbox');
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', function(e) {
+  if (e.target === lightbox) closeLightbox();
+});
+
+// Lightbox scroll → update counter
+document.getElementById('lightboxCarousel').addEventListener('scroll', function() {
+  const w = this.offsetWidth;
+  if (w <= 0 || currentImgs.length <= 1) return;
+  const idx = Math.round(this.scrollLeft / w);
+  document.getElementById('lightboxCounter').textContent = `${idx + 1} / ${currentImgs.length}`;
+});
 
 // Swipe down to close
 let tsY = 0;
