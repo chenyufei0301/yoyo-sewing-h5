@@ -188,7 +188,7 @@
     border-radius: 20px 20px 0 0;
     width: 100%;
     max-width: 540px;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
     padding: 0;
     transform: translateY(100%);
@@ -200,24 +200,74 @@
     background: #ddd; border-radius: 2px;
     margin: 14px auto 0;
   }
-  .modal-img {
+  /* Carousel */
+  .modal-carousel {
     width: 100%;
     aspect-ratio: 4/3;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    margin-top: 16px;
+    scrollbar-width: none;
+  }
+  .modal-carousel::-webkit-scrollbar { display: none; }
+  .modal-carousel-item {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    position: relative;
     background: linear-gradient(135deg, var(--blush), #F0E0D6);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--font-serif);
-    font-size: 40px;
-    color: var(--rose);
-    opacity: 0.7;
-    margin-top: 16px;
-    position: relative;
   }
-  .modal-img img {
+  .modal-carousel-item img {
     width: 100%; height: 100%;
     object-fit: cover;
     position: absolute; inset: 0;
+  }
+  .modal-carousel-placeholder {
+    font-family: var(--font-serif);
+    font-size: 44px;
+    color: var(--rose);
+    opacity: 0.5;
+  }
+  /* Dots */
+  .modal-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .modal-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: all 0.25s;
+  }
+  .modal-dot.active {
+    background: var(--warm-brown);
+    width: 18px;
+    border-radius: 3px;
+  }
+  /* Size / Fabric chart */
+  .modal-chart {
+    margin-top: 16px;
+    padding: 0 16px;
+  }
+  .modal-chart-label {
+    font-size: 11px;
+    color: var(--warm-brown);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    text-align: center;
+  }
+  .modal-chart img {
+    width: 100%;
+    border-radius: var(--radius-sm);
+    display: block;
   }
   .modal-body { padding: 18px 20px 30px; }
   .modal-name {
@@ -304,13 +354,13 @@
   <img class="header-logo" src="images/logo.png" alt="YOYO缝物所"
        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2276%22 height=%2276%22><rect fill=%22%23F7E8E0%22 width=%2276%22 height=%2276%22 rx=%2238%22/><text x=%2238%22 y=%2250%22 text-anchor=%22middle%22 font-size=%2230%22>🧵</text></svg>'">
   <h1 class="header-title">YOYO缝物所</h1>
-  <p class="header-subtitle">· 手作打揽 · 用心缝制 ·<br>挑选心仪的款式，轻松排单</p>
+  <p class="header-subtitle">· 手作打揽 · 用心缝制 ·<br>一个热爱缝纫的女生，接一些自己也会想穿的衣服</p>
   <div class="header-divider"></div>
 </header>
 
 <!-- ====== Style Gallery ====== -->
 <section class="section">
-  <h2 class="section-title">✨ 可排款式</h2>
+  <h2 class="section-title">✨ 快来挑选你喜欢的款式吧！</h2>
   <p class="section-hint">点击款式查看详情，选择后提交排单</p>
   <div class="gallery" id="gallery"></div>
 </section>
@@ -323,7 +373,16 @@
 <div class="modal-overlay" id="modal">
   <div class="modal-panel" id="modalPanel">
     <div class="modal-handle"></div>
-    <div class="modal-img" id="modalImg"></div>
+    <div class="modal-carousel" id="modalCarousel"></div>
+    <div class="modal-dots" id="modalDots"></div>
+    <div class="modal-chart" id="modalSizeChart" style="display:none;">
+      <div class="modal-chart-label">📐 尺码参考</div>
+      <img id="modalSizeImg" src="" alt="尺码表">
+    </div>
+    <div class="modal-chart" id="modalFabricChart" style="display:none;">
+      <div class="modal-chart-label">🧵 用料说明</div>
+      <img id="modalFabricImg" src="" alt="用料表">
+    </div>
     <div class="modal-body">
       <div class="modal-name" id="modalName"></div>
       <div class="modal-desc" id="modalDesc"></div>
@@ -342,16 +401,16 @@
 // ==================== DATA ====================
 // ★ 修改这里的款式：name=名称, desc=描述, img=图片路径(空则显示编号), tags=标签
 const STYLES = [
-  { id:'S01', name:'经典方领打揽衫',     desc:'复古方领设计，精致打揽褶皱，日常百搭款，棉质面料柔软亲肤，春秋单穿或内搭皆宜。',     img:'', tags:['经典款','通勤','百搭'] },
-  { id:'S02', name:'圆领泡泡袖打揽衫',   desc:'甜美泡泡袖设计，圆领修饰脸型，松紧打揽贴合身形，少女感满满，约会出游首选。',       img:'', tags:['甜美','约会','少女'] },
-  { id:'S03', name:'V领收腰打揽连衣裙',  desc:'优雅V领拉长颈部线条，收腰打揽显瘦，裙摆飘逸灵动，一件搞定约会通勤。',           img:'', tags:['显瘦','优雅','连衣裙'] },
-  { id:'S04', name:'一字肩打揽上衣',     desc:'浪漫一字肩设计，露出锁骨和肩线，松紧打揽舒适不滑落，度假拍照超出片。',         img:'', tags:['约会','度假','性感'] },
-  { id:'S05', name:'荷叶边打揽半裙',     desc:'灵动荷叶边裙摆，打揽腰头舒适不勒，走路带风，搭配任意上衣都好看。',             img:'', tags:['半裙','灵动','百搭'] },
-  { id:'S06', name:'娃娃领打揽衬衫',     desc:'可爱娃娃领设计，宽松版型不挑身材，文艺复古风，搭配牛仔裤或半裙都好看。',       img:'', tags:['文艺','宽松','复古'] },
-  { id:'S07', name:'吊带打揽连衣裙',     desc:'细吊带+打揽胸围设计，清凉夏日必备，度假出游拍照超出片，可单穿可叠穿。',        img:'', tags:['吊带','夏日','度假'] },
-  { id:'S08', name:'抽褶打揽阔腿裤',     desc:'高腰抽褶打揽设计，垂感阔腿版型，显高显瘦，舒适与时髦兼得。',                 img:'', tags:['裤装','显高','舒适'] },
-  { id:'S09', name:'中式立领打揽上衣',   desc:'新中式立领设计，手工打揽+盘扣细节，东方韵味与现代剪裁的完美融合。',           img:'', tags:['新中式','气质','国风'] },
-  { id:'S10', name:'蕾丝拼接打揽衫',     desc:'法式蕾丝拼接袖口和下摆，精致打揽细节，浪漫中带着一丝少女的俏皮。',           img:'', tags:['蕾丝','法式','浪漫'] },
+  { id:'HQ068',  name:'Doen同款打揽连衣裙',            desc:'Doen经典同款，优雅复古方领设计，精致打揽褶皱，裙摆飘逸灵动，法式田园风满满。',          imgs:['images/HQ068-1.jpg','images/HQ068-2.jpg'],                              sizeImg:'images/HQ068-SIZE.JPG',  fabricImg:'',                     tags:['法式','田园','复古'] },
+  { id:'HQ115',  name:'bishop打揽短袖连衣裙/上衣',      desc:'经典bishop袖设计，短袖轻盈舒适，打揽收腰显瘦，可作连衣裙或上衣两穿。',               imgs:['images/HQ115-1.JPG'],                                                    sizeImg:'images/HQ115-size.JPG',  fabricImg:'',                     tags:['两穿','显瘦','经典'] },
+  { id:'HQ11501',name:'bishop前开襟短袖打揽连衣裙/上衣', desc:'bishop前开襟设计，短袖轻盈，打揽褶皱精致，可单穿可叠穿，通勤休闲皆宜。',              imgs:['images/HQ11501-1.jpg'],                                                  sizeImg:'images/HQ11501-SIZE.JPG',fabricImg:'',                     tags:['前开襟','短袖','精致'] },
+  { id:'HQ11502',name:'bishop短袖半袖打揽连衣裙/上衣',   desc:'bishop半袖设计，恰到好处的袖长修饰手臂，打揽工艺精致，日常百搭不挑场合。',            imgs:['images/HQ11502-1.JPG','images/HQ11502-2.JPG','images/HQ11502-3.jpg','images/HQ11502-4.jpg','images/HQ11502-5.JPG'], sizeImg:'images/HQ11502-SIZE.JPG',fabricImg:'', tags:['半袖','百搭','精致'] },
+  { id:'HQ148',  name:'娃娃领打揽连衣裙',               desc:'可爱娃娃领设计，打揽工艺精致，宽松舒适不挑身材，文艺复古风满满。',                    imgs:['images/HQ148-1.JPG'],                                                    sizeImg:'images/HQ148-SIZE.JPG',  fabricImg:'images/HQ148-fabric.JPG', tags:['娃娃领','宽松','文艺'] },
+  { id:'HQ150',  name:'bishop打揽长袖连衣裙/上衣',      desc:'优雅bishop长袖设计，打揽贴合身形，复古气质，春秋单穿或叠穿皆宜。',                  imgs:['images/HQ150-1.JPG'],                                                    sizeImg:'images/HQ150-size.JPG',  fabricImg:'',                     tags:['长袖','复古','气质'] },
+  { id:'HQ15001',name:'bishop前开襟长袖打揽连衣裙/上衣', desc:'bishop前开襟长袖设计，打揽收腰显瘦，复古优雅，春秋季节首选单品。',                  imgs:['images/HQ15001-1.jpg','images/HQ15001-2.jpg','images/HQ15001-3.jpg'],    sizeImg:'images/HQ15001-size.JPG',fabricImg:'',                     tags:['前开襟','长袖','优雅'] },
+  { id:'HQ162',  name:'方领胸前打揽连衣裙',             desc:'复古方领设计，胸前精致打揽褶皱，收腰显瘦，经典百搭，日常约会皆宜。',                  imgs:['images/HQ162-1.JPG'],                                                    sizeImg:'images/HQ162-size.JPG',  fabricImg:'',                     tags:['方领','显瘦','经典'] },
+  { id:'HQ175',  name:'小飞袖打揽连衣裙（大袖版）',      desc:'灵动小飞袖设计，大袖版更显飘逸浪漫，打揽收腰修饰比例，甜美又气质。',                 imgs:['images/HQ175-1.JPG','images/HQ175-2.JPG','images/HQ175-3.JPG'],          sizeImg:'images/HQ175-size.JPG',  fabricImg:'',                     tags:['小飞袖','甜美','飘逸'] },
+  { id:'WL001',  name:'小飞袖打揽上衣（小袖版）',        desc:'精致小飞袖设计，小袖版利落干练，打揽贴合身形，百搭上衣单品，配裙配裤都好看。',        imgs:['images/wl001-1.jpg','images/wl001-2.jpg'],                               sizeImg:'images/wl001-size.png',  fabricImg:'',                     tags:['小飞袖','百搭','干练'] },
 ];
 
 // ★ 将此处替换为你的飞书表单分享链接
@@ -364,8 +423,9 @@ STYLES.forEach((s, i) => {
   const card = document.createElement('div');
   card.className = 'style-card';
 
-  const imgHtml = s.img
-    ? `<img src="${s.img}" alt="${s.name}" onerror="this.style.display='none'">`
+  const firstImg = s.imgs && s.imgs.length > 0 ? s.imgs[0] : '';
+  const imgHtml = firstImg
+    ? `<img src="${firstImg}" alt="${s.name}" onerror="this.style.display='none'">`
     : '';
   const tagsHtml = s.tags.map(t => `<span class="style-card-tag">${t}</span>`).join('');
 
@@ -393,21 +453,63 @@ const panel = document.getElementById('modalPanel');
 
 function openModal(idx) {
   const s = STYLES[idx];
-  const imgEl = document.getElementById('modalImg');
-  imgEl.innerHTML = s.img
-    ? `<img src="${s.img}" alt="${s.name}" onerror="this.style.display='none'">${idx+1}`
-    : (idx+1);
+
+  // --- Carousel ---
+  const carousel = document.getElementById('modalCarousel');
+  let carouselHtml = '';
+  const imgs = s.imgs && s.imgs.length > 0 ? s.imgs : null;
+  if (imgs) {
+    imgs.forEach((img, i) => {
+      carouselHtml += `<div class="modal-carousel-item"><img src="${img}" alt="${s.name} ${i+1}"></div>`;
+    });
+  } else {
+    carouselHtml = `<div class="modal-carousel-item"><span class="modal-carousel-placeholder">${idx+1}</span></div>`;
+  }
+  carousel.innerHTML = carouselHtml;
+  carousel.scrollLeft = 0;
+
+  // --- Dots ---
+  const dotsEl = document.getElementById('modalDots');
+  const count = imgs ? imgs.length : 1;
+  if (count > 1) {
+    dotsEl.innerHTML = Array.from({length: count}, (_, i) =>
+      `<span class="modal-dot${i === 0 ? ' active' : ''}" data-idx="${i}"></span>`
+    ).join('');
+    dotsEl.style.display = 'flex';
+  } else {
+    dotsEl.innerHTML = '';
+    dotsEl.style.display = 'none';
+  }
+
+  // --- Size chart ---
+  const sizeChart = document.getElementById('modalSizeChart');
+  const sizeImg = document.getElementById('modalSizeImg');
+  if (s.sizeImg) {
+    sizeImg.src = s.sizeImg;
+    sizeImg.onerror = function() { sizeChart.style.display = 'none'; };
+    sizeChart.style.display = 'block';
+  } else {
+    sizeChart.style.display = 'none';
+  }
+
+  // --- Fabric chart ---
+  const fabricChart = document.getElementById('modalFabricChart');
+  const fabricImg = document.getElementById('modalFabricImg');
+  if (s.fabricImg) {
+    fabricImg.src = s.fabricImg;
+    fabricImg.onerror = function() { fabricChart.style.display = 'none'; };
+    fabricChart.style.display = 'block';
+  } else {
+    fabricChart.style.display = 'none';
+  }
 
   document.getElementById('modalName').textContent = s.name;
   document.getElementById('modalDesc').textContent = s.desc;
   document.getElementById('modalTags').innerHTML = s.tags.map(t => `<span class="modal-tag">${t}</span>`).join('');
 
-  // Pre-fill style name in form if possible, otherwise just open the form
   const btn = document.getElementById('btnGoOrder');
-  // Try to pass style name as URL param (some form platforms support this)
   btn.href = FORM_SHARE_URL;
   btn.onclick = function(e) {
-    // Open Feishu form in new window
     window.open(FORM_SHARE_URL, '_blank');
     showToast('已为你打开排单表单 📋\n款式：' + s.name);
     closeModal();
@@ -424,6 +526,16 @@ function closeModal() {
 }
 
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+	// Carousel scroll → update dots
+	document.getElementById('modalCarousel').addEventListener('scroll', function() {
+	  const w = this.offsetWidth;
+	  if (w <= 0) return;
+	  const idx = Math.round(this.scrollLeft / w);
+	  document.querySelectorAll('#modalDots .modal-dot').forEach((d, i) => {
+	    d.classList.toggle('active', i === idx);
+	  });
+	});
 
 // Swipe down to close
 let tsY = 0;
