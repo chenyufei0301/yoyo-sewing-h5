@@ -1,10 +1,6 @@
 {
   "name": "yoyo-sewing-h5",
   "version": "1.0.0",
-  "description": "YOYO缝物所 - 款式展示 & 排单 H5",
-  "private": true,
-  "scripts": {
-    "dev": "vercel dev",
-    "deploy": "vercel --prod"
-  }
+  "description": "YOYO缝物所 - 手作打揽款式展示 & 排单 H5",
+  "private": true
 }
